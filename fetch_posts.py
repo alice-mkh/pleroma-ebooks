@@ -128,6 +128,12 @@ class PostFetcher:
 
 		obj = activity['object']
 
+
+		if 'summary' in obj:
+			summary = obj['summary']
+		else:
+			summary = None
+
 		await self._db.execute(
 			"""
 			INSERT INTO posts (post_id, summary, content, published_at)
@@ -137,7 +143,7 @@ class PostFetcher:
 				obj['id'],
 				# Pleroma returns an empty string here for posts without a CW,
 				# which is semantically incorrect IMO
-				obj['summary'] or None,
+				summary,
 				extract_post_content(obj['content']),
 				pendulum.parse(obj['published']).astimezone(pendulum.timezone('UTC')).timestamp(),
 			),
