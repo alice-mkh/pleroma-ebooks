@@ -2,37 +2,42 @@
 
 import sqlite3
 import markovify
+import time
 
 def make_sentence(cfg):
 	class nlt_fixed(markovify.NewlineText):  # modified version of NewlineText that never rejects sentences
 		def test_sentence_input(self, sentence):
 			return True  # all sentences are valid <3
 
+	cutoff_date = str(time.mktime(time.strptime(cfg["cutoff_date"], '%Y-%m-%d %H:%M:%S')))
+
 	db = sqlite3.connect(cfg["db_path"])
 	db.text_factory = str
 	c = db.cursor()
 	if cfg['learn_from_cw']:
 		ignored_cws_query_params = "(" + ",".join("?" * len(cfg["ignored_cws"])) + ")"
+
 		toots = c.execute(
 			f"""
 			SELECT content
 			FROM posts
 			WHERE
-				summary IS NULL
-				OR summary NOT IN {ignored_cws_query_params}
+				(summary IS NULL OR summary NOT IN {ignored_cws_query_params})
+				AND published_at > ?
 			ORDER BY RANDOM() LIMIT 10000
 			""",
-			cfg["ignored_cws"],
+			(*cfg["ignored_cws"], cutoff_date,),
 		).fetchall()
 	else:
 		toots = c.execute(
 			"""
 			SELECT content
 			FROM posts
-			WHERE summary IS NULL
+			WHERE summary IS NULL AND published_at > ?
 			ORDER BY RANDOM()
 			LIMIT 10000
 			""",
+			(cutoff_date,),
 		).fetchall()
 
 	if not toots:
