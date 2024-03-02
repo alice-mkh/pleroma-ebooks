@@ -1,0 +1,9 @@
+version: "3"
+
+services:
+  ebooks:
+    build: .
+    restart: always
+    stop_signal: SIGKILL
+    volumes:
+      - ./data:/ebooks/data
